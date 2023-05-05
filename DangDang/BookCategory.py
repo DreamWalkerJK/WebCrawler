@@ -4,7 +4,7 @@ from lxml import html
 import re
 import sys
 sys.path.append(r'D:\Documents\Code\WebCrawler')
-from CustomTool import WriteToFile
+from CustomTool import FileOperation
 
 # 抓取书籍分类
 def getBookCategroy():
@@ -13,14 +13,14 @@ def getBookCategroy():
     urlText = response.text
     htmlElement = html.fromstring(urlText)
 
-    bookBody = htmlElement.xpath('//div[@class="con flq_body"]')
+    bookBody = htmlElement.xpath('//div[@class="con flq_body"]/div')
 
     pattern = re.compile(r'_t9144$')
 
     bookCategory = {}
     i = 1
     # 第一层
-    for firstItem in bookBody[0].xpath(r'./div'):
+    for firstItem in bookBody:
         tempStr = firstItem.xpath(r'./@name')[0]
         matchObj = pattern.search(tempStr) # 正则匹配符合条件的书籍分类
         if matchObj:
@@ -50,12 +50,12 @@ def getBookCategroy():
                     i += 1
 
                     # 第三层
-                    for thirdItem in twiceItem.xpath(r'./dd'):
+                    for thirdItem in twiceItem.xpath(r'./dd/a'):
                         third = {}
                         third['no'] = 'B' + str(i)
                         i += 1
-                        thirdName = thirdItem.xpath(r'./a/@title')[0]
-                        third['href'] = thirdItem.xpath(r'./a/@href')[0]
+                        thirdName = thirdItem.xpath(r'./@title')[0]
+                        third['href'] = thirdItem.xpath(r'./@href')[0]
                         third['child'] = {}
                         third['parent'] = twiceNo
                         twiceChild[thirdName] = third
@@ -84,6 +84,6 @@ def transferToList(bookCategory):
 bookCategory = getBookCategroy()
 bookList = transferToList(bookCategory)
 header = ['name', 'no', 'href', 'parent']
-WriteToFile.writeToCSV(r'./DangDang/BookCategory.csv', header, bookList)
+FileOperation.writeToCSV(r'./DangDang/BookCategory.csv', header, bookList)
 
 
