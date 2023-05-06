@@ -6,6 +6,14 @@ import sys
 sys.path.append(r'D:\Documents\Code\WebCrawler')
 from CustomTool import FileOperation
 
+# 获取分类编号
+startNo = 1 
+def getCategoryNo():
+    global startNo
+    no = 'C' + str(startNo)
+    startNo += 1
+    return no
+
 # 抓取书籍分类
 def getBookCategroy():
     url = r'https://book.dangdang.com/'
@@ -18,7 +26,6 @@ def getBookCategroy():
     pattern = re.compile(r'_t9144$')
 
     bookCategory = {}
-    i = 1
     # 第一层
     for firstItem in bookBody:
         tempStr = firstItem.xpath(r'./@name')[0]
@@ -26,9 +33,8 @@ def getBookCategroy():
         if matchObj:
             first = {}
             firstChild = {}
-            firstNo = 'B' + str(i)
+            firstNo = getCategoryNo()
             first['no'] = firstNo
-            i += 1
             if len(firstItem.xpath(r'./dl/dt/a')) == 0:
                 name = firstItem.xpath(r'./dl/dt/text()')[0].strip()
                 first['href'] = ''
@@ -44,16 +50,14 @@ def getBookCategroy():
                     twiceName = twiceItem.xpath(r'./dt/a/@title')[0]
                     twiceHref = twiceItem.xpath(r'./dt/a/@href')[0]
 
-                    twiceNo = 'B' + str(i)
+                    twiceNo = getCategoryNo()
                     twice['no'] = twiceNo
                     twice['href'] = twiceHref
-                    i += 1
 
                     # 第三层
                     for thirdItem in twiceItem.xpath(r'./dd/a'):
                         third = {}
-                        third['no'] = 'B' + str(i)
-                        i += 1
+                        third['no'] = getCategoryNo()
                         thirdName = thirdItem.xpath(r'./@title')[0]
                         third['href'] = thirdItem.xpath(r'./@href')[0]
                         third['child'] = {}
@@ -76,14 +80,14 @@ def transferToList(bookCategory):
     bookList = []
     for key1 in bookCategory:
         value = bookCategory[key1]
-        bookList.append([key1, value['no'],value['href'], value['parent']])
+        bookList.append([key1, value['no'], value['href'], value['parent']])
         if len(value['child']) > 0:
             bookList.extend(transferToList(value['child']))
     return bookList
 
 bookCategory = getBookCategroy()
 bookList = transferToList(bookCategory)
-header = ['name', 'no', 'href', 'parent']
-FileOperation.writeToCSV(r'./DangDang/BookCategory.csv', header, bookList)
+header = ['categoryName', 'categoryNo', 'categoryHref', 'parent']
+FileOperation.writeToCSV(r'./DangDang/Category.csv', header, bookList)
 
 

@@ -7,5 +7,3 @@ def getIntTime(min = 1, max =3):
 # 返回指定范围内的随机数，默认在1-3范围内取小数点后2位
 def getFloatTime(min = 1, max = 3, limit = 2):
     return round(random.uniform(min, max), limit)
-
-print(getFloatTime())
