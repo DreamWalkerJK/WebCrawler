@@ -5,7 +5,8 @@ import requests
 from lxml import html
 import random
 import traceback
-from multiprocessing import Process, Pool
+import numpy
+from multiprocessing import Pool
 from CustomTool import GetRandomTime
 from CustomTool import FileOperation
 from CustomTool import StringOperation
@@ -43,12 +44,12 @@ def getBook(dataList):
                     bookHref = 'http:'+ li.xpath(r'./a/@href')[0]
                     price = li.xpath(r'./p[@class="price"]/span[@class="search_now_price"]/text()')
                     if not price:
-                        price = li.xpath('./div[@class="ebook_buy"]/p[@class="price e_price"]/text()')
+                        price = li.xpath('./div[@class="ebook_buy"]/p[@class="price e_price"]/span[@class="search_now_price"]/text()')
                         if not price:
                             bookPrice = '0.0'
                             bookPrePrice = '0.0'
                         else:
-                            bookPrice = price[0]
+                            bookPrice = price[0][1:]
                             bookPrePrice = '0.0'
                     else:
                         bookPrice = li.xpath(r'./p[@class="price"]/span[@class="search_now_price"]/text()')[0][1:]
@@ -83,6 +84,7 @@ def getBook(dataList):
 
 if __name__ == "__main__":
     dataList = FileOperation.readCSV(r'./DangDang/CategoryCount.csv')
+    numpy.random.shuffle(dataList) # 随机打乱次序
 
     index = 0
     dataDivide = []
@@ -96,7 +98,7 @@ if __name__ == "__main__":
             end = index + divide
         index = end
         data = [item for item in dataList[start: end]]
-        data = sorted(data, key = lambda a:int(a[2]), reverse=False)
+        data = sorted(data, key = lambda a:int(a[2]), reverse=False) # 按照页数排序
         dataDivide.append(data)
     with Pool(processes=8) as p:
         p.map(getBook, dataDivide) 
