@@ -41,6 +41,7 @@ def dictToList(dict):
     return retList
 
 # 合并所有分类的图书CSV到一个CSV文件中
+# 2023/5/9 csv最多能存储1048576行数据，数据量超过csv最大行数，此方法弃用改用导入数据库
 def MergeBooks(path, newBookCSV, pressCSV):
     header = ['bookName','bookNo','bookHref','bookPrice','bookPrePrice','author','press','CategoryNo']
     pressHeader = ['pressNo', 'pressName']
@@ -57,7 +58,7 @@ def MergeBooks(path, newBookCSV, pressCSV):
                     pressDict[content[-1]] = 'P{0}'.format(pressNo)
                     pressNo += 1
                 content[-1] = pressDict[content[-1]]
-            content.append(item[:-4]) # 新增图书分类列
+            content.append(str(item).split('.')[0]) # 新增图书分类列
         FileOperation.writeToCSV(newBookCSV, header=header, List=bookContentList, operator='a+')
     pressList = dictToList(pressDict)
     FileOperation.writeToCSV(pressCSV, header=pressHeader, List=pressList, operator='w')
