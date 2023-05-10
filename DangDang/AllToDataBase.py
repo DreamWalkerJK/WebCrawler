@@ -52,7 +52,7 @@ try:
     # 插入数据
     input = ','.join(['%s', ] * 4)
     categoryList = FileOperation.readCSV('./DangDang/Category.csv')
-    sql = "insert into Category(categoryNo,categoryName,categoryHref,parent) values(%s)"% input
+    sql = "insert into Category(categoryName,categoryNo,categoryHref,parent) values(%s)"% input
     cursor.executemany(sql, categoryList)
 
     input = ','.join(['%s', ] * 2)
