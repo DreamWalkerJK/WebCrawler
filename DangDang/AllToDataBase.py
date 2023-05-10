@@ -42,8 +42,8 @@ try:
         bookName varchar(150) not null,
         bookHref varchar(200),
         pictureHref varchar(200),
-        bookPrice decimal,
-        bookPrePrice decimal,
+        bookPrice decimal(10,2),
+        bookPrePrice decimal(10,2),
         author varchar(150),
         pressNo varchar(15),
         categoryNo varchar(15)

@@ -4,6 +4,7 @@ sys.path.append(r'D:\Documents\Code\WebCrawler')
 import requests
 from lxml import html
 import random
+import re
 import traceback
 import numpy
 from multiprocessing import Pool
@@ -23,6 +24,8 @@ def getBook(dataList):
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0",
         "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.5359.95 Safari/537.36"
     ]
+
+    pattern = re.compile('(pg[0-9]+-)+')
     for data in dataList:
         categoryNo = data[0]
         url = data[1]
@@ -78,8 +81,11 @@ def getBook(dataList):
             finally:
                 # 抓取下一页的数据
                 addStr = 'pg' + str(startPage) + '-'
-                url = StringOperation.insertStr(url, 29, addStr)
-                time.sleep(GetRandomTime.getFloatTime(min=1, max=2))
+                if pattern.search(url):
+                    url = pattern.sub(addStr, url, 1)
+                else:
+                    url = StringOperation.insertStr(url, 29, addStr)
+                time.sleep(GetRandomTime.getFloatTime(min=1, max=3))
 
 
 if __name__ == "__main__":
@@ -102,5 +108,3 @@ if __name__ == "__main__":
         dataDivide.append(data)
     with Pool(processes=8) as p:
         p.map(getBook, dataDivide) 
-
-
