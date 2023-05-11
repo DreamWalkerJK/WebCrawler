@@ -5,7 +5,7 @@ sys.path.append(r'D:\Documents\Code\WebCrawler')
 from CustomTool import FileOperation
 
 # 合并两个文件夹的图书
-def MergeDir(bookPath1, bookPath2, newPath):
+def mergeDir(bookPath1, bookPath2, newPath):
     bookDir1 = os.listdir(bookPath1) # 读取文件名
     bookDir2 = os.listdir(bookPath2)
 
@@ -32,43 +32,42 @@ def MergeDir(bookPath1, bookPath2, newPath):
         fileNewPath = "{0}\{1}".format(newPath, item)
         shutil.copyfile(filePath, fileNewPath)
 
-# 字典转列表
-def dictToList(dict):
-    retList = []
-    for key in dict.keys():
-        item = [dict[key], key]
-        retList.append(item)
-    return retList
+# 求交集，方便后续继续抓取不同分类数据
+def intersectionOfBooks():
+    categoryCountPath = 'D:\Desktop\CategoryCount.csv'
+    categoryCountList = FileOperation.readCSV(categoryCountPath)
+    compareSet = set([item[0] for item in categoryCountList])
+    compareSet.intersection
+    bookFileList = os.listdir('D:\Desktop\Books')
+    bookSet = set([item.split('.')[0] for item in bookFileList])
+    result = compareSet - bookSet
 
-# 合并所有分类的图书CSV到一个CSV文件中
-# 2023/5/9 csv最多能存储1048576行数据，数据量超过csv最大行数，此方法弃用改用导入数据库
-def MergeBooks(path, newBookCSV, pressCSV):
-    header = ['bookName','bookNo','bookHref','bookPrice','bookPrePrice','author','press','CategoryNo']
-    pressHeader = ['pressNo', 'pressName']
+    newCategoryCountList = []
+    for item in categoryCountList:
+        if item[0] in result:
+            newCategoryCountList.append(item)
 
-    bookDir = os.listdir(path)
-    pressDict = {}
-    pressNo = 1
-    for item in bookDir:
-        bookPath = "{0}\{1}".format(path, item)
-        bookContentList = FileOperation.readCSV(bookPath)
-        for content in bookContentList:
-            if len(content[-1]) > 0:
-                if content[-1] not in pressDict.keys(): # 对出版社进行处理
-                    pressDict[content[-1]] = 'P{0}'.format(pressNo)
-                    pressNo += 1
-                content[-1] = pressDict[content[-1]]
-            content.append(str(item).split('.')[0]) # 新增图书分类列
-        FileOperation.writeToCSV(newBookCSV, header=header, List=bookContentList, operator='a+')
-    pressList = dictToList(pressDict)
-    FileOperation.writeToCSV(pressCSV, header=pressHeader, List=pressList, operator='w')
-        
+    categoryCountHeader = ['categoryNo', 'categoryHref', 'total', 'totalPage']
+    FileOperation.writeToCSV(categoryCountPath, header=categoryCountHeader, List=newCategoryCountList)
+
+# 扫描目录获取图书的总和
+def getBooksTotalNum(booksDir):
+    bookFileList = os.listdir(booksDir)
+    total = 0
+    for file in bookFileList:
+        bookPath = "{0}\{1}".format(newPath, file)
+        bookList = FileOperation.readCSV(bookPath)
+        total += len(bookList)
+    return total
 
 bookPath1 = "D:\Desktop\Book1"
 bookPath2 = "D:\Desktop\Book2"
 newPath = "D:\Desktop\Books"
-newBookCSV = "./DangDang/AllBooks.csv"
-pressCSV = "./DangDang/Press.csv"
-# MergeDir(bookPath1, bookPath2, newPath) # 合并两个文件夹中的分类书籍
-MergeBooks(newPath, newBookCSV, pressCSV)
+# mergeDir(bookPath1, bookPath2, newPath) # 合并两个文件夹中的分类书籍
+
+# intersectionOfBooks()
+
+total = getBooksTotalNum(newPath)
+print("total : {0}".format(total))
+
 
