@@ -72,15 +72,11 @@ def getBook(dataList):
                         press = ''
                     else:
                         press = lastSpan.xpath(r'./a/@title')[0]
-                    bookStore = li.xpath(r'./div[@class="lable_label"]/span[@class="new_lable"]/span[@class="new_lable1"]/text()')
+                    bookStore = li.xpath(r'./p[@class="search_shangjia"]/a')
                     if not bookStore:
-                        bookStore = li.xpath(r'./p[@class="search_shangjia"]/a')
-                        if not bookStore:
-                            bookStore = ''
-                        else:
-                            bookStore = li.xpath(r'./p[@class="search_shangjia"]/a/@title')[0]
+                        bookStore = '当当'
                     else:
-                        bookStore = '当当自营'
+                        bookStore = li.xpath(r'./p[@class="search_shangjia"]/a/@title')[0]
                     book = (bookNo, bookName, bookHref, bookPrice, bookPrePrice, author, press, bookStore, categoryNo)
                     bookList.append(book)
                 if len(bookList) > 0:
