@@ -5,17 +5,10 @@ import re
 import sys
 sys.path.append(r'D:\Documents\Code\WebCrawler')
 from CustomTool import FileOperation
-
-# 获取分类编号
-startNo = 1 
-def getCategoryNo():
-    global startNo
-    no = 'C' + str(startNo)
-    startNo += 1
-    return no
+from DangDang import BookDBOperator
 
 # 抓取书籍分类
-def getBookCategroy():
+def getCategroyDict():
     url = r'https://book.dangdang.com/'
     response = requests.get(url)
     urlText = response.text
@@ -24,8 +17,10 @@ def getBookCategroy():
     bookBody = htmlElement.xpath('//div[@class="con flq_body"]/div')
 
     pattern = re.compile(r'_t9144$')
+    patternCategoryNo = re.compile(r'book-')
 
     bookCategory = {}
+    startNo = 1
     # 第一层
     for firstItem in bookBody:
         tempStr = firstItem.xpath(r'./@name')[0]
@@ -33,14 +28,19 @@ def getBookCategroy():
         if matchObj:
             first = {}
             firstChild = {}
-            firstNo = getCategoryNo()
-            first['no'] = firstNo
+            
             if len(firstItem.xpath(r'./dl/dt/a')) == 0:
-                name = firstItem.xpath(r'./dl/dt/text()')[0].strip()
+                firstNo = 'C{0}'.format(startNo) # 抓取不到分类编号时，生成分类编号
+                startNo += 1
+                firstName = firstItem.xpath(r'./dl/dt/text()')[0].strip()
                 first['href'] = ''
             else:
-                name = firstItem.xpath(r'./dl/dt/a/@title')[0]
+                firstNo = firstItem.xpath(r'./dl/dt/a/@nname')[0].strip()
+                firstNo = patternCategoryNo.sub('C',firstNo).strip() # 对分类编号进行处理替换
+                firstName = firstItem.xpath(r'./dl/dt/a/@title')[0].strip()
                 first['href'] = firstItem.xpath(r'./dl/dt/a/@href')[0]
+            
+            first['no'] = firstNo
 
             # 第二层
             for twiceItem in firstItem.xpath(r'./div/div/div/dl'):
@@ -50,14 +50,17 @@ def getBookCategroy():
                     twiceName = twiceItem.xpath(r'./dt/a/@title')[0]
                     twiceHref = twiceItem.xpath(r'./dt/a/@href')[0]
 
-                    twiceNo = getCategoryNo()
+                    twiceNo = twiceItem.xpath(r'./dt/a/@nname')[0]
+                    twiceNo = patternCategoryNo.sub('C',twiceNo).strip()
                     twice['no'] = twiceNo
                     twice['href'] = twiceHref
 
                     # 第三层
                     for thirdItem in twiceItem.xpath(r'./dd/a'):
                         third = {}
-                        third['no'] = getCategoryNo()
+                        thirdNo = thirdItem.xpath(r'./@nname')[0]
+                        thirdNo = patternCategoryNo.sub('C',thirdNo).strip()
+                        third['no'] = thirdNo
                         thirdName = thirdItem.xpath(r'./@title')[0]
                         third['href'] = thirdItem.xpath(r'./@href')[0]
                         third['child'] = {}
@@ -70,24 +73,35 @@ def getBookCategroy():
 
             first['child'] = firstChild
             first['parent'] = '0'
-            bookCategory[name] = first
+            bookCategory[firstName] = first
         else:
             continue
     return bookCategory
 
-# 字典转列表
-def transferToList(bookCategory):
+# 分类字典转为列表
+def transferToList(categoryDict):
     bookList = []
-    for key1 in bookCategory:
-        value = bookCategory[key1]
-        bookList.append([key1, value['no'], value['href'], value['parent']])
+    for key1 in categoryDict:
+        value = categoryDict[key1]
+        bookList.append((value['no'], key1, value['href'], value['parent']))
         if len(value['child']) > 0:
             bookList.extend(transferToList(value['child']))
     return bookList
 
-bookCategory = getBookCategroy()
-bookList = transferToList(bookCategory)
-header = ['categoryName', 'categoryNo', 'categoryHref', 'parent']
-FileOperation.writeToCSV(r'./DangDang/Category.csv', header, bookList)
+# 获取分类列表
+def getCategoryList():
+    categoryDict = getCategroyDict()
+    categoryList = transferToList(categoryDict)
+    return categoryList
+
+# 获取分类列表写入文件或者数据库
+def writeCategoryList(categoryList, isWriteToDB = 0):
+    match isWriteToDB:
+        case 0:
+            header = ['categoryNo', 'categoryName', 'categoryHref', 'parent']
+            FileOperation.writeToCSV(r'./DangDang/Category.csv', header, categoryList)
+        case 1:
+            BookDBOperator.insertDataListToDB('category', categoryList)
+    
 
 

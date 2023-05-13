@@ -13,6 +13,8 @@ def writeToCSV(path, header, List, operator = 'w'):
 
 # 读取csv返回列表
 def  readCSV(path, startIndex = 1, endIndex = -1):
+    if os.path.isfile(path) == False:
+        return []
     with open(path, 'r', encoding='utf-8-sig')as f:
         csv_reader = csv.reader(f)
         dataList = list(csv_reader)

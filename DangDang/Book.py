@@ -6,15 +6,12 @@ from lxml import html
 import random
 import re
 import traceback
-import numpy
-from multiprocessing import Pool
-from CustomTool import GetRandomTime
-from CustomTool import FileOperation
-from CustomTool import StringOperation
+from CustomTool import GetRandomTime,FileOperation,StringOperation
+from DangDang import BookDBOperator
 
 # 抓取图书
 def getBook(dataList):
-    csvHeader = ['bookName', 'bookNo', 'bookHref', 'bookPrice', 'bookPrePrice', 'author', 'press']
+    csvHeader = ['bookNo', 'bookName', 'bookHref', 'bookPrice', 'bookPrePrice', 'author', 'press', 'bookStore', 'categoryNo']
     useAgentList = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 Edg/112.0.1722.68",
@@ -26,6 +23,7 @@ def getBook(dataList):
     ]
 
     pattern = re.compile('(pg[0-9]+-)+')
+    patternBookName = re.compile(r'[【](.*)[】]')
     for data in dataList:
         categoryNo = data[0]
         url = data[1]
@@ -38,11 +36,13 @@ def getBook(dataList):
                 header = {'User-Agent': random.choice(useAgentList)}
                 # response = requests.get(url, headers=header, timeout=(6.05, 27.05))
                 response = requests.get(url, headers=header)
+                response.encoding = response.apparent_encoding
                 urlText = response.text
                 element = html.fromstring(urlText)
                 liList = element.xpath(r'//div[@id="search_nature_rg"]/ul/li')
                 for li in liList:
                     bookName = li.xpath(r'./a/@title')[0]
+                    bookName = patternBookName.sub('',bookName).strip() # 对图书名进行处理，去除广告
                     bookNo = str(li.xpath(r'./@id')[0])[1:]
                     bookHref = 'http:'+ li.xpath(r'./a/@href')[0]
                     price = li.xpath(r'./p[@class="price"]/span[@class="search_now_price"]/text()')
@@ -72,10 +72,22 @@ def getBook(dataList):
                         press = ''
                     else:
                         press = lastSpan.xpath(r'./a/@title')[0]
-                    book = [bookName, bookNo, bookHref, bookPrice, bookPrePrice, author, press]
+                    bookStore = li.xpath(r'./div[@class="lable_label"]/span[@class="new_lable"]/span[@class="new_lable1"]/text()')
+                    if not bookStore:
+                        bookStore = li.xpath(r'./p[@class="search_shangjia"]/a')
+                        if not bookStore:
+                            bookStore = ''
+                        else:
+                            bookStore = li.xpath(r'./p[@class="search_shangjia"]/a/@title')[0]
+                    else:
+                        bookStore = '当当自营'
+                    book = (bookNo, bookName, bookHref, bookPrice, bookPrePrice, author, press, bookStore, categoryNo)
                     bookList.append(book)
-                # 写入csv
-                FileOperation.writeToCSV(r'./DangDang/Books/{0}.csv'.format(categoryNo), header=csvHeader, List=bookList, operator='a+')
+                if len(bookList) > 0:
+                    # 写入csv
+                    FileOperation.writeToCSV(r'./DangDang/Books/{0}.csv'.format(categoryNo), header=csvHeader, List=bookList, operator='a+')
+                    # 插入到数据库中
+                    BookDBOperator.insertDataListToDB('book', bookList)
             except Exception:
                 print('Category{0}-Page:{1}-Exception:{2}'.format(categoryNo, startPage-1, traceback.format_exc()))
             finally:
@@ -88,23 +100,3 @@ def getBook(dataList):
                 time.sleep(GetRandomTime.getFloatTime(min=1, max=3))
 
 
-if __name__ == "__main__":
-    dataList = FileOperation.readCSV(r'./DangDang/CategoryCount.csv')
-    numpy.random.shuffle(dataList) # 随机打乱次序
-
-    index = 0
-    dataDivide = []
-    divide = len(dataList) // 8
-    remainder = len(dataList) % 8
-    for i in range(1, 9):
-        start = index
-        if(index == 0):
-            end = index + i * divide + remainder
-        else:
-            end = index + divide
-        index = end
-        data = [item for item in dataList[start: end]]
-        data = sorted(data, key = lambda a:int(a[2]), reverse=False) # 按照页数排序
-        dataDivide.append(data)
-    with Pool(processes=8) as p:
-        p.map(getBook, dataDivide) 
